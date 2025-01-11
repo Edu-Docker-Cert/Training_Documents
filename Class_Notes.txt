@@ -905,3 +905,274 @@ Day - 4  5th Jan. 2024
   219  docker run -it -p 9090:8080 loksaieta/appsv1:v1.0
   220  clear
   221  history
+
+
+	
+########################
+Day - 5  11th Jan. 2024
+########################	
+	
+	
+	Automate Docker Application build using Build Orchestration Tools :
+	
+		CICD - Pipeline Stages :
+		
+			Stage1: SCM_Checkout 
+					git clone "https://github.com/Edu-Docker-Cert/java-mvn-springbootapp.git"
+			
+			Stage2: Application_Build 
+					mvn "clean package"
+					
+						# mvn package -> compile, test, create artifacts(*.war) 
+						# mvn test 	  -> compile, test
+						# mvn compile -> compile 
+			
+			Stage3: Application Container Image Build 
+					docker Build <> .
+				
+				docker run -it -p 9090:8080 loksaieta/appsv1:v1.0
+				
+				
+				
+	CI/CD Pipeline :::
+	
+		Continuous Integration / Continuous delivery/Deployment
+
+
+	CI/Cd 
+	
+	CI/CD 
+	
+	Build Orchestration Tools :::
+	
+		- Jenkins 
+		- Azure Pipelines
+		- gitlab-ci 
+		- github Actions 
+		- AWS CodePipelines 
+		- Bamboo
+		
+	
+	1. Source Code Repository 
+	
+	2. Application Build Process & Dependencies 
+	
+	3. Application Image Build 
+	
+	4. Push the Application Image to Container Registry 
+	
+	5. Deploy to Kubernetes Cluster(Target Environment - QA/UAT/PROD)
+	
+	
+	Jenkins :::
+	
+	Architecture of Build Orchestration Tools ::
+	
+		- Master/Slave Architecture :::		
+		
+		Jenkins_Master :	Used Create Jenkins CI/CD Pipeline Projects & Schedule to run in the Build environment(Jenkins  SlaveNodes)	
+		
+			Jenkins_Slave1(Build Environment)	: 	Used to build Application Build and Image Build
+													Push the Application image to Container Registry
+
+
+
+		Tools :		
+		
+			Jenkins_Master 							:: Install jdk/git/jenkins				
+				Jenkins_Slave1(Build Environment)	:: Install jdk/git/maven/Docker Engine		
+
+
+		Environments :::
+		
+			DEV 
+			
+			Build
+			
+			Target Environments :(Docker Swarm/Kubernetes)
+				Test 				
+					QA 					
+					UAT 
+		
+				Prod 					
+					Prod_Servers
+					
+					
+	Architecture of Container Orchestration Tool :::
+	
+		Production Environments: LIVE 
+		
+			Production Server1,2,3,4,5
+			
+			
+		Kubernetes/Docker Swarm :
+		
+			Kubernetes Master_Node :	Used to Prepare the Pods(Containers) & Schedule the deployments.
+			
+				Worker_Node1,2,3,4,5(Target_Server)
+			
+			
+		Non-Prod Kubernetes Cluster					
+
+			Kubernetes Master_Node :	Used to Prepare the Pods(Containers) & Schedule the deployments.
+			
+				Worker_Node1,2,3,4,5(Target_Server - QA/UAT)			
+		
+		
+		Prod Kubernetes Cluster 
+			
+			Kubernetes Master_Node :	Used to Prepare the Pods(Containers) & Schedule the deployments.
+			
+				Worker_Node1,2,3,4,5(Target_Server - LIVE)
+				
+				
+		End-to-End CI/CD Pipeline ::
+			
+			1. Source Code Repository 
+			
+			2. Application Build Process & Dependencies 
+			
+			3. Application Image Build 
+			
+			4. Push the Application Image to Container Registry 
+			
+			5. Deploy to Kubernetes Cluster(Target Environment - QA/UAT/PROD)		
+
+
+
+	Servers ::
+	
+		Create :
+		
+			Jenkins_Master 				::	Used Create Jenkins CI/CD Pipeline Projects & Schedule to run in the Build environment		
+				Jenkins_Slave1 			::  Used to build Application Build and Image Build & Publish the Images to Container Registry
+				
+			Kubernetes_Master 			::	Prepare and Schedule the Pods(Containers) for Deployment
+				Kubernetes_WorkerNode1
+				Kubernetes_WorkerNode2
+				Kubernetes_WorkerNode3  				
+			
+			
+			t2.micro --> 1GB/1CPU
+			
+			t2.medium --> 4GB RAM/2 CPUs
+				Jenkins Container 
+				Jenkins Build Environments
+				
+				
+				
+				
+				
+			Jenkins_Master & Slave Communication is based on SSH Connection :
+			
+				Host_Name 
+				User_Name 
+				
+				Authentication Type:
+				
+					Password Based Authentication
+					Token Based Authentication
+					Key Based Authentication
+						- Public Key / Authorized Key
+						- Private Key 						
+					Passwordless Authentication
+			
+		Create CICD Pipeline :
+		
+	
+		CICD - Pipeline Stages :
+		
+			Stage1: SCM_Checkout 
+					git clone "https://github.com/Edu-Docker-Cert/java-mvn-springbootapp.git"
+			
+			Stage2: Application_Build 
+					mvn "clean package"
+					
+						# mvn package -> compile, test, create artifacts(*.war) 
+						# mvn test 	  -> compile, test
+						# mvn compile -> compile 
+			
+			Stage3: Application Container Image Build 
+					docker Build <> .
+				
+				docker run -it -p 9090:8080 loksaieta/appsv1:v1.0		
+			
+		
+pipeline {
+    
+    agent { label 'slave1' }
+
+
+	environment {	
+		DOCKERHUB_CREDENTIALS=credentials('dockerloginid')
+	}
+	
+    stages {
+        stage('SCM Checkout') {
+            steps {
+                echo 'Perform SCM Checkout'
+				git 'https://github.com/Edu-Docker-Cert/java-mvn-springbootapp.git'
+            }
+        }
+        stage('Application Build') {
+            steps {
+                echo 'Application Build'
+                sh 'mvn clean package'
+                
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+				sh "docker build -t loksaieta/dcp-jan11-appimg:${BUILD_NUMBER} ."
+				sh 'docker image list'
+				sh "docker tag loksaieta/dcp-jan11-appimg:${BUILD_NUMBER} loksaieta/dcp-jan11-appimg:latest"
+            }
+        }
+		stage('Login2DockerHub') {
+
+			steps {
+				sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+			}
+		}		
+		stage('Publish_to_Docker_Registry') {
+			steps {
+				sh "docker push loksaieta/dcp-jan11-appimg:latest"
+			}
+		}
+    }
+}				
+				
+				
+	Container Orchestration Tool :::
+	
+	--> docker compose 	:::
+	
+			- Docker Compose is an extension to Docker Engine.
+			- Install Docker Compose as a external package
+			- Is used to run multiple Containers as a Service.
+			- Create a manifest file using *.yaml Script
+			
+		
+	--> 3 - Tier Application Services
+	
+		- Front-End				# User Interaction 	--> C1
+			
+		- Application Layer		# Business Logics 	--> C2
+		
+		- Back-End Layer		# Data_Base			--> C3		
+	
+	
+	---> /home/devopsadmin/workspace/Edu-pipeline/ ls
+
+	
+Next :::
+		
+	- Install Docker Compose :::		https://docs.docker.com/compose/install/linux/#install-the-plugin-manually
+	
+	- Docker Compose Manifest File 
+	
+	- Execute Multiple Containers as a Service!
+	
+	
+	
+		
