@@ -1482,3 +1482,199 @@ Next :::
 		- Namespaces 
 		
 		- Create and Deploy the Pods in Kubernetes Cluster using Jenkins!
+
+
+	
+########################
+Day - 8  19th Jan. 2024
+########################
+
+	- Overview of PV & PVC :::
+	
+	
+	Kubernetes Volumes ::
+		
+		- Persistant Volumes 
+		- Persistant Volumes Claim 
+		
+		
+	
+
+	- Namespaces 
+	
+	- Create and Deploy the Pods in Kubernetes Cluster using Jenkins!
+	
+
+
+	Web Application :::
+	
+		Micro-Services 
+		
+		
+		
+		Environments :::
+		
+			DEV 	(VM)
+			
+			BUILD (VM)  slave1
+			
+			QA		(VM) 
+			
+			UAT 	(VM)
+			
+			PROD 	(VM)(VM)(VM)(VM)
+			
+		
+
+		Non-Prod Environment:
+		
+		Non-Prod-Kubernetes_Master
+						WN1,2,3,4,5
+						
+			Namespaces :
+			
+				- Logical Partition of Kubernetes Cluster
+				
+			App_Team1_DEV	
+			App_Team1_QA 
+			App_Team1_UAT
+
+
+			Folders --> c:/ // d:/
+	
+						
+	
+		Prod Environment:
+		
+		Prod-Kubernetes_Master
+						WN1,2,3,4,5	
+	
+	
+	Ingress Controller / Recordset 
+
+		- Simple routing 				
+		
+		- Host Based Routing 
+		
+		- Path Based Routing 
+		
+		
+		www.google.com 		Web Service !
+		
+			www.gmail.google.com 							Host Based Routing!
+			
+			www.drive.google.com 			
+			
+			www.translate.google.com
+		
+				
+				www.gmail.google.com 				Host Based Routing!
+				
+					www.gmail.com/inbox 			Path Based routing!
+					www.gmail.com/sent
+					www.gmail.com/trash
+					
+				
+				
+# myappsvcdeploy.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loksai-eta-deploy
+  labels:
+    app: loksai-eta-deploy-lbl
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: loksai-eta-app
+  template:
+    metadata:
+      labels:
+        app: loksai-eta-app
+    spec:
+      containers:
+      - name: loksai-eta-container
+        image: loksaieta/dcp-jan11-appimg:latest
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loksai-eta-np-service
+  labels:
+    app: loksai-eta-np-app
+spec:
+  selector:
+    app: loksai-eta-deploy-lbl
+
+  type: NodePort
+  ports:
+  - nodePort: 31030
+    port: 8080
+    targetPort: 8080
+				
+				
+				
+		Jenkins_Master		
+			Jenkins_Slave1 
+			
+		Kubernetes_Master
+			WN1
+			WN2
+	
+	
+		Use Publish Over SSH to Deploy 
+				
+pipeline {
+    
+    agent { label 'slave1' }
+
+
+	environment {	
+		DOCKERHUB_CREDENTIALS=credentials('dockerloginid')
+	}
+	
+    stages {
+        stage('SCM Checkout') {
+            steps {
+                echo 'Perform SCM Checkout'
+				git 'https://github.com/Edu-Docker-Cert/java-mvn-springbootapp.git'
+            }
+        }
+        stage('Application Build') {
+            steps {
+                echo 'Application Build'
+                sh 'mvn clean package'
+                
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+				sh "docker build -t loksaieta/dcp-jan11-appimg:${BUILD_NUMBER} ."
+				sh 'docker image list'
+				sh "docker tag loksaieta/dcp-jan11-appimg:${BUILD_NUMBER} loksaieta/dcp-jan11-appimg:latest"
+            }
+        }
+		stage('Login2DockerHub') {
+
+			steps {
+				sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+			}
+		}		
+		stage('Publish_to_Docker_Registry') {
+			steps {
+				sh "docker push loksaieta/dcp-jan11-appimg:latest"
+			}
+		}
+        stage('Deploy to Kubernetes Cluster') {
+            steps {
+				script {
+				sshPublisher(publishers: [sshPublisherDesc(configName: 'Docker_KMaster', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: 'kubectl apply -f kubedeploy.yaml', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '.', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '*.yaml')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+			}				          
+            }
+        }
+    }
+}	
